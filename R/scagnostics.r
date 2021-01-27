@@ -19,7 +19,7 @@
 #' These are described in more detail in: 
 #' Graph-Theoretic Scagnostics, Leland Wilkinson, Anushka 
 #' Anand, Robert Grossman. 
-#' \url{http://papers.rgrossman.com/proc-094.pdf}
+#' \url{https://papers.rgrossman.com/proc-094.pdf}
 #' 
 #' You can call the function with two 1d vectors to get a single vector
 #' of scagnostics, or with a 2d structure (matrix or data frame) to get 
@@ -30,7 +30,7 @@
 #' @param outlierRmv logical for trimming data, default=TRUE
 #' @param  ... Extra arguments
 #' @keyword hplot
-#' @useDynLib binostics
+#' @useDynLib binostics, .registration = TRUE
 #' @export
 #' @examples
 #' scagnostics(1:10, 1:10)
@@ -54,7 +54,7 @@ scagnostics.default <- function(x, y, bins=50, outlierRmv=TRUE, ...) {
   y <- (y - min(y)) / diff(range(y))
   
   results <- rep(0, 9 + 3 * 1000)
-  r <- .C("scagnostics",
+  r <- .C("scagnosticsC",
     x = as.double(x),
     y = as.double(y),
     length = as.integer(length(x)),
@@ -92,22 +92,11 @@ scagnostics_2d <- function(x, ...) {
   each <- lapply(seq_len(nrow(vars)), function(i) {
     scagnostics(x[,vars[i, 1]], x[,vars[i, 2]])$s
   })
-  scag <- do.call("rbind", each)
+  scag <- as.data.frame(do.call("rbind", each))
+  scag$var1 <- colnames(x)[vars$x]
+  scag$var2 <- colnames(x)[vars$y]
   
-  rownames(scag) <- apply(vars, 1, 
-    function(v) paste(colnames(x)[v], collapse=" vs "))
-
-  attr(scag, "vars") <- vars
-  attr(scag, "data") <- x
-  structure(scag, class = c("scagdf"))
+  scag
+  
 }
 
-#' Print scagnostics data structure
-#' @param x Object to be printed
-#' @param  ... Extra arguments
-#' @keyword internal
-print.scagdf <- function(x, ...) {
-  attr(x, "vars") <- NULL
-  attr(x, "data") <- NULL
-  print.default(x, ...)
-}
